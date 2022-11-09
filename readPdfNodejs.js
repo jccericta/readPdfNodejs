@@ -2,9 +2,11 @@ import PdfReader from 'pdfreader';
 import fs from "fs";
 import path, {dirname}  from 'path';
 import puppeteer from 'puppeteer-core';
+import converter from 'convert-array-to-csv';
 
 //joining path of directory 
 const directoryPath = path.join(dirname('./'), 'read');
+const directoryPath2 = path.join(dirname('./'), 'isRead');
 
 function getBaseUrl(url){
     var path = url.replace(/"/g, "").split('/');
@@ -29,7 +31,8 @@ const urls = [];
 const keywords = [];
 const isLive = [];
 const linkWorks = [];
-const csvData = ['URL', 'Keyword', 'isLive', 'linkWorks', 'Landing Page'];
+const csvDataHeader = ['URL', 'Keyword', 'isLive', 'linkWorks', 'Landing Page'];
+const csvData = [];
 
 let s = '';
 
@@ -42,6 +45,7 @@ fs.readdir(directoryPath, function (err, files) {
     files.forEach(function (file) {
         // Do whatever you want to do with the file
         //console.log(file);
+        let csvFileName = "./"+directoryPath2+"/"+file+'.csv';
         new PdfReader.PdfReader().parseFileItems("./"+directoryPath+"/"+file, (err, item) => {
             if (err) console.error("error:", err);
             else if (!item) {
@@ -52,20 +56,19 @@ fs.readdir(directoryPath, function (err, files) {
                     (async () => {
                         const browser = await puppeteer.launch(
                             {
-                                headless: false,
+                                headless:  false,
                                 ignoreHTTPSErrors: true,
                                 executablePath: 'C:\\Program Files\\chrome-win\\chrome.exe',
-                                args:['--start-maximized' ],
                                 timeout: 0
                             }
                         );
                         const page = await browser.newPage();
                         await page.setDefaultNavigationTimeout(0);
-                        const navigationPromise = page.waitForNavigation({waitUntil: "domcontentloaded"})
+                        const navigationPromise = page.waitForNavigation({waitUntil: "domcontentloaded"});
                         var base = getBaseUrl(urls[i]);
                         let url = new URL(urls[i].replace(/"/g,""), base);
                         data.push(url);
-                        await page.goto(url);
+                        await page.goto(url).catch(e => console.error('Error on Page: ' + e));
                         navigationPromise;
                         //console.log(url);
                         await page.content();
@@ -103,6 +106,11 @@ fs.readdir(directoryPath, function (err, files) {
                         for(var j = 0; j < data.length; j++){
                             csvData.push(data[i]);
                         }
+                        const csvDataString = converter.convertArrayToCSV(csvData, {
+                            csvDataHeader,
+                            separator: ';'
+                        });
+                        console.log(csvDataString);
                         await browser.close();
                     })();
                 }

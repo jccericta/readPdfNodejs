@@ -9,6 +9,7 @@
   "author": "John Ericta",
   "license": "ISC",
   "dependencies": {
+    "convert-array-to-csv": "^2.0.0",
     "pdfreader": "^2.0.0",
     "puppeteer": "^19.2.2",
     "puppeteer-core": "^19.2.2",
