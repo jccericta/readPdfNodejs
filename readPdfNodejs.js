@@ -6,11 +6,6 @@ import puppeteer from 'puppeteer-core';
 //joining path of directory 
 const directoryPath = path.join(dirname('./'), 'read');
 
-async function getInnerHtml(page, target){
-    const innerHTML = await page.evaluate(el => el.innerHTML, target)
-    return innerHTML;
-  }
-
 function getBaseUrl(url){
     var path = url.replace(/"/g, "").split('/');
     var protocol = path[0];
@@ -31,6 +26,10 @@ function isValidHttpUrl(string) {
   }
 
 const urls = [];
+const keywords = [];
+const isLive = [];
+const linkWorks = [];
+
 let s = '';
 
 fs.readdir(directoryPath, function (err, files) {
@@ -68,10 +67,33 @@ fs.readdir(directoryPath, function (err, files) {
                         //console.log(url);
                         await page.content();
                         const edgeUrl = 'a[href*="theedgetreatment"]';
-                        await page.waitForSelector(edgeUrl, { timeout: 0 });
-                        //await getInnerHtml(page, edgeUrl);
-                        await page.click(edgeUrl);
-                      })();
+                        const k = await page.waitForSelector(edgeUrl, { timeout: 0 });
+                        const jsHandle = await k.getProperty('innerHTML');
+                        const keyword = await jsHandle.jsonValue();
+                        if(keyword) {
+                            console.log(keyword);
+                            console.log('isLive: Yes')
+                            keywords.push(keyword);
+                            isLive.push('Y');
+                        }
+                        else {
+                            console.log('none');
+                            console.log('isLive: No')
+                            keywords.push('none');
+                            isLive.push('N');
+                        }
+                        const link = await page.$(edgeUrl);
+                        if(link) {
+                            await link.click({button: 'middle'});
+                            console.log('Link Works: Yes');
+                            linkWorks.push('Y');
+                        }
+                        else {
+                            console.log('Link Works: No')
+                            linkWorks.push('N');
+                        }
+                        await browser.close();
+                    })();
                 }
             }
             else if (item.text) {
