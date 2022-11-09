@@ -78,9 +78,10 @@ fs.readdir(directoryPath, function (err, files) {
                         const keyword = await jsHandle.jsonValue();
                         data.push(keyword);
                         const link = await page.$(edgeUrl);
+                        console.log('');
                         console.log(url.href);
                         if(keyword) {
-                            console.log(keyword);
+                            console.log('keyword:' + keyword);
                             console.log('isLive: Yes')
                             keywords.push(keyword);
                             isLive.push('Y');
@@ -100,10 +101,11 @@ fs.readdir(directoryPath, function (err, files) {
                             data.push('Y');
                         }
                         else {
-                            console.log('Link Works: No')
+                            console.log('Link Works: No');
                             linkWorks.push('N');
                             data.push('N');
                         }
+                        console.log('');
                         for(var j = 0; j < data.length; j++){
                             csvData.push(data[i]);
                         }
