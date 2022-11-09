@@ -29,6 +29,7 @@ const urls = [];
 const keywords = [];
 const isLive = [];
 const linkWorks = [];
+const csvData = ['URL', 'Keyword', 'isLive', 'linkWorks', 'Landing Page'];
 
 let s = '';
 
@@ -46,6 +47,7 @@ fs.readdir(directoryPath, function (err, files) {
             else if (!item) {
                 console.warn("end of file");
                 for(let i = 0; i < urls.length; i++){
+                    var data = [];
                     console.log(urls[i]); // do something here with puppeteer
                     (async () => {
                         const browser = await puppeteer.launch(
@@ -62,6 +64,7 @@ fs.readdir(directoryPath, function (err, files) {
                         const navigationPromise = page.waitForNavigation({waitUntil: "domcontentloaded"})
                         var base = getBaseUrl(urls[i]);
                         let url = new URL(urls[i].replace(/"/g,""), base);
+                        data.push(url);
                         await page.goto(url);
                         navigationPromise;
                         //console.log(url);
@@ -70,27 +73,35 @@ fs.readdir(directoryPath, function (err, files) {
                         const k = await page.waitForSelector(edgeUrl, { timeout: 0 });
                         const jsHandle = await k.getProperty('innerHTML');
                         const keyword = await jsHandle.jsonValue();
+                        data.push(keyword);
+                        const link = await page.$(edgeUrl);
                         if(keyword) {
                             console.log(keyword);
                             console.log('isLive: Yes')
                             keywords.push(keyword);
                             isLive.push('Y');
+                            data.push('Y');
                         }
                         else {
                             console.log('none');
                             console.log('isLive: No')
                             keywords.push('none');
                             isLive.push('N');
+                            data.push('N');
                         }
-                        const link = await page.$(edgeUrl);
                         if(link) {
-                            await link.click({button: 'middle'});
                             console.log('Link Works: Yes');
+                            await link.click({button: 'middle'});
                             linkWorks.push('Y');
+                            data.push('Y');
                         }
                         else {
                             console.log('Link Works: No')
                             linkWorks.push('N');
+                            data.push('N');
+                        }
+                        for(var j = 0; j < data.length; j++){
+                            csvData.push(data[i]);
                         }
                         await browser.close();
                     })();
