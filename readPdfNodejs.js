@@ -78,6 +78,7 @@ fs.readdir(directoryPath, function (err, files) {
                         const keyword = await jsHandle.jsonValue();
                         data.push(keyword);
                         const link = await page.$(edgeUrl);
+                        console.log(url.href);
                         if(keyword) {
                             console.log(keyword);
                             console.log('isLive: Yes')
@@ -106,11 +107,6 @@ fs.readdir(directoryPath, function (err, files) {
                         for(var j = 0; j < data.length; j++){
                             csvData.push(data[i]);
                         }
-                        const csvDataString = converter.convertArrayToCSV(csvData, {
-                            csvDataHeader,
-                            separator: ';'
-                        });
-                        console.log(csvDataString);
                         await browser.close();
                     })();
                 }
