@@ -54,7 +54,7 @@ function isValidHttpUrl(string) {
   }
 
 const urls = [];
-let url = '';
+let s = '';
 
 fs.readdir(directoryPath, function (err, files) {
     //handling error
@@ -98,14 +98,14 @@ fs.readdir(directoryPath, function (err, files) {
             else if (item.text) {
                 if(isValidHttpUrl(item.text)){
                     if(item.text.search('theedgetreatment') < 0) {
-                        url = item.text;
+                        s = item.text;
                         //console.log('URL : ' + item.text);
                     }
                 }
                 else {
-                    if(url){
-                        urls.push(JSON.stringify(url+item.text));
-                        url = '';
+                    if(s){
+                        urls.push(JSON.stringify(s+item.text));
+                        s = '';
                     }
                 }
             }
