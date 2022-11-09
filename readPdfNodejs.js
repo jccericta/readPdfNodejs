@@ -53,69 +53,75 @@ fs.readdir(directoryPath, function (err, files) {
                 for(let i = 0; i < urls.length; i++){
                     var data = [];
                     console.log(urls[i]); // do something here with puppeteer
-                    (async () => {
-                        const browser = await puppeteer.launch(
-                            {
-                                headless:  false,
-                                ignoreHTTPSErrors: true,
-                                executablePath: 'C:\\Program Files\\chrome-win\\chrome.exe',
-                                timeout: 0
+                    try {
+                        (async () => {
+                            const browser = await puppeteer.launch(
+                                {
+                                    headless:  false,
+                                    ignoreHTTPSErrors: true,
+                                    executablePath: 'C:\\Program Files\\chrome-win\\chrome.exe',
+                                    timeout: 0
+                                }
+                            );
+                            const page = await browser.newPage();
+                            await page.setDefaultNavigationTimeout(0);
+                            const navigationPromise = page.waitForNavigation({waitUntil: "domcontentloaded"});
+                            var base = getBaseUrl(urls[i]);
+                            let url = new URL(urls[i].replace(/"/g,""), base);
+                            data.push(url);
+                            await page.goto(url).catch(e => console.error('Error on Page: ' + e));
+                            navigationPromise;
+                            //console.log(url);
+                            await page.content();
+                            const edgeUrl = 'a[href*="detoxnearme"]';
+                            const k = await page.waitForSelector(edgeUrl, { timeout: 0 });
+                            const jsHandle = await k.getProperty('innerHTML');
+                            const keyword = await jsHandle.jsonValue();
+                            data.push(keyword);
+                            const link = await page.$(edgeUrl);
+                            console.log('');
+                            console.log('URL: ' + url.href);
+                            if(keyword) {
+                                console.log('Keyword: ' + keyword);
+                                console.log('Is Live: Yes')
+                                keywords.push(keyword);
+                                isLive.push('Y');
+                                data.push('Y');
                             }
-                        );
-                        const page = await browser.newPage();
-                        await page.setDefaultNavigationTimeout(0);
-                        const navigationPromise = page.waitForNavigation({waitUntil: "domcontentloaded"});
-                        var base = getBaseUrl(urls[i]);
-                        let url = new URL(urls[i].replace(/"/g,""), base);
-                        data.push(url);
-                        await page.goto(url).catch(e => console.error('Error on Page: ' + e));
-                        navigationPromise;
-                        //console.log(url);
-                        await page.content();
-                        const edgeUrl = 'a[href*="theedgetreatment"]';
-                        const k = await page.waitForSelector(edgeUrl, { timeout: 0 });
-                        const jsHandle = await k.getProperty('innerHTML');
-                        const keyword = await jsHandle.jsonValue();
-                        data.push(keyword);
-                        const link = await page.$(edgeUrl);
-                        console.log('');
-                        console.log(url.href);
-                        if(keyword) {
-                            console.log('keyword:' + keyword);
-                            console.log('isLive: Yes')
-                            keywords.push(keyword);
-                            isLive.push('Y');
-                            data.push('Y');
-                        }
-                        else {
-                            console.log('none');
-                            console.log('isLive: No')
-                            keywords.push('none');
-                            isLive.push('N');
-                            data.push('N');
-                        }
-                        if(link) {
-                            console.log('Link Works: Yes');
-                            await link.click({button: 'middle'});
-                            linkWorks.push('Y');
-                            data.push('Y');
-                        }
-                        else {
-                            console.log('Link Works: No');
-                            linkWorks.push('N');
-                            data.push('N');
-                        }
-                        console.log('');
-                        for(var j = 0; j < data.length; j++){
-                            csvData.push(data[i]);
-                        }
-                        await browser.close();
-                    })();
+                            else {
+                                console.log('Keyword: ');
+                                console.log('Is Live: No')
+                                keywords.push('none');
+                                isLive.push('N');
+                                data.push('N');
+                            }
+                            if(link) {
+                                console.log('Link Works: Yes');
+                                await link.click({button: 'middle'});
+                                linkWorks.push('Y');
+                                data.push('Y');
+                            }
+                            else {
+                                console.log('Link Works: No');
+                                linkWorks.push('N');
+                                data.push('N');
+                            }
+                            console.log('');
+                            for(var j = 0; j < data.length; j++){
+                                csvData.push(data[i]);
+                            }
+                            await browser.close();
+                        })();
+                    }
+                    catch(err) {
+                        console.log('Error on puppeteer async function: ' + err);
+                        throw err;
+                    }
                 }
             }
             else if (item.text) {
                 if(isValidHttpUrl(item.text)){
-                    if(item.text.search('theedgetreatment') < 0) {
+                    if(item.text.search('detoxnearme') < 0) {
                         s = item.text;
                         //console.log('URL : ' + item.text);
                     }
