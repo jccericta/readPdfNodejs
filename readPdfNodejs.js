@@ -3,6 +3,7 @@ import fs from "fs";
 import path, {dirname}  from 'path';
 import puppeteer from 'puppeteer-core';
 import converter from 'convert-array-to-csv';
+import { TimeoutError } from 'puppeteer';
 
 process.setMaxListeners(0);
 
@@ -72,46 +73,85 @@ fs.readdir(directoryPath, function (err, files) {
                             const base = getBaseUrl(urls[i]);
                             const url = new URL(urls[i].replace(/"/g,""), base).href;
                             data.push(url);
-                            await page.goto(url).catch(e => console.error('Error on Page: ' + e));
+                            await page.goto(url).catch(e => console.error('Error Going to Page: ' + e));
                             navigationPromise;
                             await page.content();
                             const targetUrl = 'a[href*="'+href+'"]';
-                            const k = await page.waitForSelector(targetUrl, { timeout: 0 });
-                            const jsHandle = await k.getProperty('innerHTML');
-                            const keyword = await jsHandle.jsonValue();
-                            data.push(keyword);
-                            const link = await page.$(targetUrl);
-                            console.log('');
-                            console.log('URL: ' + url);
-                            if(keyword) {
-                                console.log('Keyword: ' + keyword);
-                                console.log('Is Live: Yes')
-                                keywords.push(keyword);
-                                isLive.push('Y');
-                                data.push('Y');
+                            try {
+                                const k = await page.waitForSelector(targetUrl);    
+                                const jsHandle = await k.getProperty('innerHTML');
+                                const keyword = await jsHandle.jsonValue();
+                                data.push(keyword);
+                                const link = await page.$(targetUrl);
+                                console.log('');
+                                console.log('URL: ' + url);
+                                if(keyword) {
+                                    console.log('Keyword: ' + keyword);
+                                    console.log('Is Live: Yes')
+                                    keywords.push(keyword);
+                                    isLive.push('Y');
+                                    data.push('Y');
+                                }
+                                else {
+                                    console.log('Keyword: ');
+                                    console.log('Is Live: No')
+                                    keywords.push('none');
+                                    isLive.push('N');
+                                    data.push('N');
+                                }
+                                if(link) {
+                                    console.log('Link Works: Yes');
+                                    await link.click({button: 'middle'});
+                                    linkWorks.push('Y');
+                                    data.push('Y');
+                                }
+                                else {
+                                    console.log('Link Works: No');
+                                    linkWorks.push('N');
+                                    data.push('N');
+                                }
+                                console.log('');
+                                csvData.push(data);
+                                //console.log(JSON.stringify(csvData));
+                                await browser.close();
                             }
-                            else {
-                                console.log('Keyword: ');
-                                console.log('Is Live: No')
-                                keywords.push('none');
-                                isLive.push('N');
-                                data.push('N');
-                            }
-                            if(link) {
-                                console.log('Link Works: Yes');
-                                await link.click({button: 'middle'});
-                                linkWorks.push('Y');
-                                data.push('Y');
-                            }
-                            else {
-                                console.log('Link Works: No');
-                                linkWorks.push('N');
-                                data.push('N');
-                            }
-                            console.log('');
-                            csvData.push(data);
-                            //console.log(JSON.stringify(csvData));
-                            await browser.close();
+                            catch(e) {
+                                if(e instanceof TimeoutError) {
+                                    const keyword = '';
+                                    const link = '';
+                                    data.push(keyword);
+                                    console.log('');
+                                    console.log('URL: ' + url);
+                                    if(keyword) {
+                                        console.log('Keyword: ' + keyword);
+                                        console.log('Is Live: Yes')
+                                        keywords.push(keyword);
+                                        isLive.push('Y');
+                                        data.push('Y');
+                                    }
+                                    else {
+                                        console.log('Keyword: ');
+                                        console.log('Is Live: No')
+                                        keywords.push('none');
+                                        isLive.push('N');
+                                        data.push('N');
+                                    }
+                                    if(link) {
+                                        console.log('Link Works: Yes');
+                                        linkWorks.push('Y');
+                                        data.push('Y');
+                                    }
+                                    else {
+                                        console.log('Link Works: No');
+                                        linkWorks.push('N');
+                                        data.push('N');
+                                    }
+                                    console.log('');
+                                    csvData.push(data);
+                                    //console.log(JSON.stringify(csvData));
+                                    await browser.close();
+                                }
+                            }    
                         })();
                     }
                     catch(err) {
@@ -119,6 +159,11 @@ fs.readdir(directoryPath, function (err, files) {
                         throw err;
                     }
                 }
+                (async () => {
+                    if(i === urls.length) {
+                        
+                    }
+                })();
             }
             else if (item.text) { // pdfreader is stil reading in texts
                 if(isValidHttpUrl(item.text)){
