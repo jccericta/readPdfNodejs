@@ -159,11 +159,6 @@ fs.readdir(directoryPath, function (err, files) {
                         throw err;
                     }
                 }
-                (async () => {
-                    if(i === urls.length) {
-                        
-                    }
-                })();
             }
             else if (item.text) { // pdfreader is stil reading in texts
                 if(isValidHttpUrl(item.text)){
