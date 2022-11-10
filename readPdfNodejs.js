@@ -4,6 +4,8 @@ import path, {dirname}  from 'path';
 import puppeteer from 'puppeteer-core';
 import converter from 'convert-array-to-csv';
 
+process.setMaxListeners(0);
+
 //joining path of directory 
 const directoryPath = path.join(dirname('./'), 'read');
 const directoryPath2 = path.join(dirname('./'), 'isRead');
@@ -31,10 +33,11 @@ const urls = [];
 const keywords = [];
 const isLive = [];
 const linkWorks = [];
-const csvDataHeader = ['URL', 'Keyword', 'isLive', 'linkWorks', 'Landing Page'];
+const csvDataHeader = ['URL', 'Keyword', 'isLive', 'linkWorks', 'Landing Page', 'DA', 'DR'];
 const csvData = [];
-
+csvData.push(csvDataHeader);
 let s = '';
+let href = 'theforgerecovery'; // change this per site audit
 
 fs.readdir(directoryPath, function (err, files) {
     //handling error
@@ -48,13 +51,13 @@ fs.readdir(directoryPath, function (err, files) {
         let csvFileName = "./"+directoryPath2+"/"+file+'.csv';
         new PdfReader.PdfReader().parseFileItems("./"+directoryPath+"/"+file, (err, item) => {
             if (err) console.error("error:", err);
-            else if (!item) {
+            else if (!item) { // eof
                 console.warn("end of file");
                 for(let i = 0; i < urls.length; i++){
-                    var data = [];
                     console.log(urls[i]); // do something here with puppeteer
                     try {
                         (async () => {
+                            let data = [];
                             const browser = await puppeteer.launch(
                                 {
                                     headless:  false,
@@ -66,21 +69,20 @@ fs.readdir(directoryPath, function (err, files) {
                             const page = await browser.newPage();
                             await page.setDefaultNavigationTimeout(0);
                             const navigationPromise = page.waitForNavigation({waitUntil: "domcontentloaded"});
-                            var base = getBaseUrl(urls[i]);
-                            let url = new URL(urls[i].replace(/"/g,""), base);
+                            const base = getBaseUrl(urls[i]);
+                            const url = new URL(urls[i].replace(/"/g,""), base).href;
                             data.push(url);
                             await page.goto(url).catch(e => console.error('Error on Page: ' + e));
                             navigationPromise;
-                            //console.log(url);
                             await page.content();
-                            const edgeUrl = 'a[href*="detoxnearme"]';
-                            const k = await page.waitForSelector(edgeUrl, { timeout: 0 });
+                            const targetUrl = 'a[href*="'+href+'"]';
+                            const k = await page.waitForSelector(targetUrl, { timeout: 0 });
                             const jsHandle = await k.getProperty('innerHTML');
                             const keyword = await jsHandle.jsonValue();
                             data.push(keyword);
-                            const link = await page.$(edgeUrl);
+                            const link = await page.$(targetUrl);
                             console.log('');
-                            console.log('URL: ' + url.href);
+                            console.log('URL: ' + url);
                             if(keyword) {
                                 console.log('Keyword: ' + keyword);
                                 console.log('Is Live: Yes')
@@ -107,9 +109,8 @@ fs.readdir(directoryPath, function (err, files) {
                                 data.push('N');
                             }
                             console.log('');
-                            for(var j = 0; j < data.length; j++){
-                                csvData.push(data[i]);
-                            }
+                            csvData.push(data);
+                            //console.log(JSON.stringify(csvData));
                             await browser.close();
                         })();
                     }
@@ -119,9 +120,9 @@ fs.readdir(directoryPath, function (err, files) {
                     }
                 }
             }
-            else if (item.text) {
+            else if (item.text) { // pdfreader is stil reading in texts
                 if(isValidHttpUrl(item.text)){
-                    if(item.text.search('detoxnearme') < 0) {
+                    if(item.text.search(href) < 0) {
                         s = item.text;
                         //console.log('URL : ' + item.text);
                     }
