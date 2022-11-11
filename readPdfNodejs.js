@@ -150,7 +150,7 @@ fs.readdir(directoryPath, function (err, files) {
                                     console.log('Link Works: No');
                                     linkWorks.push('N');
                                     data.push('N');
-                                    data.push('');
+                                    data.push(link);
                                     console.log('');
                                     csvData.push(data);
                                     //console.log(JSON.stringify(csvData));
