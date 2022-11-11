@@ -4,6 +4,7 @@ import path, {dirname}  from 'path';
 import puppeteer from 'puppeteer-core';
 import converter from 'convert-array-to-csv';
 import { TimeoutError } from 'puppeteer';
+import { url } from 'inspector';
 
 process.setMaxListeners(0);
 
@@ -54,6 +55,7 @@ fs.readdir(directoryPath, function (err, files) {
             if (err) console.error("error:", err);
             else if (!item) { // eof
                 console.warn("end of file");
+                let count = 0;
                 for(let i = 0; i < urls.length; i++){
                     console.log(urls[i]); // do something here with puppeteer
                     try {
@@ -83,6 +85,8 @@ fs.readdir(directoryPath, function (err, files) {
                                 const keyword = await jsHandle.jsonValue();
                                 data.push(keyword);
                                 const link = await page.$(targetUrl);
+                                const lJsHandle = await link.getProperty('href');
+                                const l = await lJsHandle.jsonValue();
                                 console.log('');
                                 console.log('URL: ' + url);
                                 if(keyword) {
@@ -104,11 +108,13 @@ fs.readdir(directoryPath, function (err, files) {
                                     await link.click({button: 'middle'});
                                     linkWorks.push('Y');
                                     data.push('Y');
+                                    data.push(l);
                                 }
                                 else {
                                     console.log('Link Works: No');
                                     linkWorks.push('N');
                                     data.push('N');
+                                    data.push('');
                                 }
                                 console.log('');
                                 csvData.push(data);
@@ -122,37 +128,38 @@ fs.readdir(directoryPath, function (err, files) {
                                     data.push(keyword);
                                     console.log('');
                                     console.log('URL: ' + url);
-                                    if(keyword) {
-                                        console.log('Keyword: ' + keyword);
-                                        console.log('Is Live: Yes')
-                                        keywords.push(keyword);
-                                        isLive.push('Y');
-                                        data.push('Y');
-                                    }
-                                    else {
-                                        console.log('Keyword: ');
-                                        console.log('Is Live: No')
-                                        keywords.push('none');
-                                        isLive.push('N');
-                                        data.push('N');
-                                    }
-                                    if(link) {
-                                        console.log('Link Works: Yes');
-                                        linkWorks.push('Y');
-                                        data.push('Y');
-                                    }
-                                    else {
-                                        console.log('Link Works: No');
-                                        linkWorks.push('N');
-                                        data.push('N');
-                                    }
+                                    console.log('Keyword: ');
+                                    console.log('Is Live: No')
+                                    keywords.push('none');
+                                    isLive.push('N');
+                                    data.push('N');
+                                    console.log('Link Works: No');
+                                    linkWorks.push('N');
+                                    data.push('N');
+                                    data.push('');
                                     console.log('');
                                     csvData.push(data);
                                     //console.log(JSON.stringify(csvData));
                                     await browser.close();
                                 }
                             }    
-                        })();
+                        })().then(
+                            function(){
+                                count++;
+                                if(count === urls.length) {
+                                    console.log(JSON.stringify(csvData));
+                                    const csvDataString = converter.convertArrayToCSV(csvData, csvDataHeader, ',');
+                                    fs.writeFile(csvFileName, csvDataString, 'utf8', function(err){
+                                        if(err){
+                                            console.log('Error writing to file: ' + csvFileName + ' >> ' + err);
+                                        }
+                                        else {
+                                            console.log(csvFileName + ' has been saved');
+                                        }
+                                    });
+                                }
+                            }
+                        );
                     }
                     catch(err) {
                         console.log('Error on puppeteer async function: ' + err);
