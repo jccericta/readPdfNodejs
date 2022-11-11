@@ -4,14 +4,15 @@ import path, {dirname}  from 'path';
 import puppeteer from 'puppeteer-core';
 import converter from 'convert-array-to-csv';
 import { TimeoutError } from 'puppeteer';
-import { url } from 'inspector';
 
+// Set node max listeners to 0 or infinity
 process.setMaxListeners(0);
 
 //joining path of directory 
 const directoryPath = path.join(dirname('./'), 'read');
 const directoryPath2 = path.join(dirname('./'), 'isRead');
 
+// gets the domain name
 function getBaseUrl(url){
     var path = url.replace(/"/g, "").split('/');
     var protocol = path[0];
@@ -21,6 +22,7 @@ function getBaseUrl(url){
     return base;
 }
 
+// checks to see if the string is a valid url
 function isValidHttpUrl(string) {
     let url;
     try {
@@ -29,7 +31,7 @@ function isValidHttpUrl(string) {
       return false;
     }
     return url.protocol === "http:" || url.protocol === "https:";
-  }
+}
 
 const urls = [];
 const keywords = [];
@@ -38,8 +40,20 @@ const linkWorks = [];
 const csvDataHeader = ['URL', 'Keyword', 'isLive', 'linkWorks', 'Landing Page', 'DA', 'DR'];
 const csvData = [];
 csvData.push(csvDataHeader);
-let s = '';
-let href = 'theforgerecovery'; // change this per site audit
+let s = ''; // temp string
+let href = 'theforgerecovery'; // change this per site for bulk audits
+
+/* 
+    Function: read all files in the directory ./read.
+    For each file create an instance of the pdf reader and read through the contents.
+    Scan for variable href and exclude from urls array but include the rest of the urls.
+
+    At EOF, create an instance of puppeteer to spawn a Chromium browser and wait for the a selector to appear with the target href as variable href.
+    Get the neccessary information such as the backlink title, the backlink, and etc. Click on the selector to make sure it works. On timeout I'm assuming
+    that the link containing the backlinks is either a 404 or timeouts. Either way this means there is no backlink.
+
+    This is an async function that returns the promise of performing a site crawl to each url found in the pdfs.
+*/
 
 fs.readdir(directoryPath, function (err, files) {
     //handling error
@@ -79,10 +93,10 @@ fs.readdir(directoryPath, function (err, files) {
                             navigationPromise;
                             await page.content();
                             const targetUrl = 'a[href*="'+href+'"]';
-                            try {
-                                const k = await page.waitForSelector(targetUrl);    
-                                const jsHandle = await k.getProperty('innerHTML');
-                                const keyword = await jsHandle.jsonValue();
+                            try { // try catch on waitForSelector because node breaks on a puppeteer timeout error
+                                const k = await page.waitForSelector(targetUrl); // returns a Element handle    
+                                const jsHandle = await k.getProperty('innerHTML'); // returns a JSHandle
+                                const keyword = await jsHandle.jsonValue(); // return value of the property
                                 data.push(keyword);
                                 const link = await page.$(targetUrl);
                                 const lJsHandle = await link.getProperty('href');
